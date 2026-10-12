@@ -1,0 +1,82 @@
+[
+  {
+    "frame": 0,
+    "name": "idle_0",
+    "sprite_id": 1
+  },
+  {
+    "frame": 1,
+    "name": "idle_1",
+    "sprite_id": 4
+  },
+  {
+    "frame": 2,
+    "name": "run_0",
+    "sprite_id": 7
+  },
+  {
+    "frame": 3,
+    "name": "run_1",
+    "sprite_id": 10
+  },
+  {
+    "frame": 4,
+    "name": "run_2",
+    "sprite_id": 49
+  },
+  {
+    "frame": 5,
+    "name": "run_3",
+    "sprite_id": 52
+  },
+  {
+    "frame": 6,
+    "name": "jump_0",
+    "sprite_id": 55
+  },
+  {
+    "frame": 7,
+    "name": "jump_1",
+    "sprite_id": 58
+  },
+  {
+    "frame": 8,
+    "name": "fall_0",
+    "sprite_id": 97
+  },
+  {
+    "frame": 9,
+    "name": "fall_1",
+    "sprite_id": 100
+  },
+  {
+    "frame": 10,
+    "name": "flip_0",
+    "sprite_id": 103
+  },
+  {
+    "frame": 11,
+    "name": "flip_1",
+    "sprite_id": 106
+  },
+  {
+    "frame": 12,
+    "name": "attack_0",
+    "sprite_id": 145
+  },
+  {
+    "frame": 13,
+    "name": "attack_1",
+    "sprite_id": 148
+  },
+  {
+    "frame": 14,
+    "name": "hurt_0",
+    "sprite_id": 151
+  },
+  {
+    "frame": 15,
+    "name": "hurt_1",
+    "sprite_id": 154
+  }
+]

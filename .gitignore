@@ -1,0 +1,22 @@
+# 本地备份和缓存不参与版本管理。
+backups/
+exports/
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 参考设定图仅供本地研究；游戏使用的生成素材在 assets/sprites/。
+assets/references/
+
+# 本体验证生成的临时卡带与日志。
+/*_runtime_check.p8
+/native_*_stdout.txt
+/native_*_stderr.txt
+
+# 本机配置与凭据。
+.env
+.env.*
+!.env.example

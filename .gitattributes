@@ -1,0 +1,10 @@
+# 保持 Lua/Python/文档在不同系统上的换行一致。
+* text=auto
+*.lua text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.p8 text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary

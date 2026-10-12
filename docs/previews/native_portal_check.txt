@@ -1,0 +1,3 @@
+RUNNING: portal_runtime_check.p8
+INFO: PASS: spawns, portals, reversible converters, high routes, attacks, walls, persistent enemies, damage and respawn
+INFO: PASS: opposite-side portal regression
