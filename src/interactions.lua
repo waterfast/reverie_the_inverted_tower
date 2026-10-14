@@ -9,6 +9,9 @@ function interaction_near(object)
 end
 
 function room_interaction_target()
+ for object in all(room.state.talks) do
+  if interaction_near(object) then return object,"talk" end
+ end
  for converter in all(room.state.converters) do
   if interaction_near(converter) then return converter,"converter" end
  end
@@ -17,12 +20,10 @@ end
 
 function room_interact()
  if game.transition>0 or game.death_timer>0 then return false end
- local object=room_interaction_target()
- if not object then return false end
- -- 两边都可用。不继承原坐标，因为旋转后原处可能变成实体墙。
- game.inverted=not game.inverted
- room_enter(room.id,object.entry)
- player.flip_timer=player_config.flip_frames
+ local object,kind=room_interaction_target()
+ if kind=="talk" then dialogue_start(object.story) return true end
+ -- 地图不变，切换上下重力后直接贴到对应支撑面。
+ flip_start()
  return true
 end
 
@@ -50,10 +51,17 @@ function interactions_draw()
   line(center+door.direction*2,door.y+12,center-door.direction*2,door.y+14,color)
  end
  for converter in all(room.state.converters) do
-  rectfill(converter.x,converter.y+24,converter.x+23,converter.y+31,5)
-  circfill(converter.x+12,converter.y+11,9,0)
-  circ(converter.x+12,converter.y+11,9,color)
-  line(converter.x+12,converter.y+11,converter.x+12,converter.y+4,12)
-  line(converter.x+12,converter.y+11,converter.x+17,converter.y+14,12)
+  -- 一根贯穿上下的装置，两端均能操作；建筑本身不随重力移动。
+  for y=converter.y+28,converter.y+converter.h-28,6 do
+   pset(converter.x+12,y,color)
+  end
+  for side=1,2 do
+   local y=converter.y+11
+   if side==2 then y=converter.y+converter.h-21 end
+   circfill(converter.x+12,y,9,0)
+   circ(converter.x+12,y,9,color)
+   line(converter.x+12,y,converter.x+12,y-7,12)
+   line(converter.x+12,y,converter.x+17,y+3,12)
+  end
  end
 end

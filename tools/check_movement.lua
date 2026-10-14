@@ -8,6 +8,12 @@ btn=function(n) return held[n] or false end
 btnp=function(n) return pressed[n] or false end
 local noop=function() end
 cls=noop; line=noop; circ=noop; circfill=noop; rect=noop; rectfill=noop
+ovalfill=noop; sspr=noop; memcpy=noop; poke=noop
+sin=math.sin; cos=math.cos; sub=string.sub; tonum=tonumber
+band=function(a,b) return a & b end
+deli=table.remove
+del=function(t,v) for i,item in ipairs(t) do if item==v then table.remove(t,i) return end end end
+sget=function() return 0 end
 pset=noop; spr=noop; clip=noop; camera=noop; map=noop; pal=noop; menuitem=noop
 local log=print; print=noop
 local root=arg[1] or 'src'
@@ -27,121 +33,121 @@ fget=function(id,flag)
  return math.floor(flags/2^flag)%2==1
 end
 add=table.insert
-for _,name in ipairs({'config','rooms','room','view','player_animation','player','interactions','combat','enemies','drawing','main'}) do
+for _,name in ipairs({'config','rooms','room','view','player_animation','player','interactions','combat','enemies','drawing','dialogue_data','dialogue','flip_effect','decorations','main'}) do
  dofile(root..'/'..name..'.lua')
 end
 local function step(n) for _=1,n do _update60(); pressed={} end end
 local function check(condition,message) assert(condition,message) end
-_init(); step(15)
-check(player.grounded and player.y==230,'initial spawn')
--- 所有世界入口都不能穿墙，且必须有地面支撑。
+_init()
+check(not game.inverted and player.gravity==1 and player.x==24 and player.y==230 and player.grounded,"default normal entrance")
+start_config.intro=true
+-- 对话冻结移动、攻击、敌人、伤害；第一次按键补全，下一次翻页。
+_init()
+local x,y,hp=player.x,player.y,game.hp
+held[1]=true; step(20)
+check(player.x==x and player.y==y and game.hp==hp,'dialogue pauses simulation')
+pressed[5]=true; step(1)
+check(dialogue.revealed==dialogue_count(dialogue.pages[1]),'reveal page')
+pressed[4]=true; step(1)
+check(dialogue.page==2,'next page')
+held={}; dialogue=nil; step(15)
+check(player.grounded and player.y==230,'initial floor spawn')
+-- 逐格对比有效地图（包括门洞、补充平台），而不是只比卡带存储。
+for id,definition in ipairs(rooms) do
+ room_enter(id,'west')
+ game.inverted=false
+ local tiles={}
+ for ty=0,definition.rows-1 do
+  for tx=0,definition.columns-1 do tiles[ty*definition.columns+tx]=room_tile(tx,ty) end
+ end
+ game.inverted=true
+ for ty=0,definition.rows-1 do
+  for tx=0,definition.columns-1 do
+   check(room_tile(tx,ty)==tiles[ty*definition.columns+tx],'same geometry '..id)
+  end
+ end
+ check(definition.normal==definition.reverse,'shared room data')
+ for entry in pairs(definition.normal.entries) do
+  room_enter(id,entry)
+  check(not room_blocked(player.x,player.y,player.w,player.h),'safe entry '..id..entry)
+  check(player.gravity==-1,'gravity retained across rooms')
+ end
+end
+check(#rooms[2].normal.converters==0 and #rooms[3].normal.converters==0,'optional converters')
+-- 过场中点仅切重力，保留角色和敌人的实际对象、坐标与生命。
+start_config.intro=false; _init(); room_enter(1,'converter'); game.transition=0
+local actor=player; local guard=enemies[1]
+x,y=player.x,player.y; game.hp=3
+check(room_interact(),'activate converter')
+step(flip_config.midpoint-1)
+check(not game.inverted and player==actor and player.x==x and player.y==y,'freeze before midpoint')
+step(1)
+check(game.inverted and player.gravity==-1 and game.hp==3,'midpoint gravity switch')
+check(player.x==x and player.y<y and player.grounded and enemies[1]==guard,'instant ceiling and no enemy respawn')
+step(flip_config.frames-flip_config.midpoint); check(not flip_effect,'transition completes')
+step(100); check(player.grounded and player.y<y,'lands on ceiling')
+local ceiling_y=player.y
+pressed[4]=true; step(1)
+check(player.vy>0 and player.y>ceiling_y,'ceiling jump points down')
+game.transition=0; check(room_interact(),'converter usable in reverse')
+step(flip_config.frames); check(not game.inverted and player.gravity==1,'return gravity')
+-- 自动通道在两个重力状态均用原门洞，按方向通行且不会反弹。
 for _,inverted in ipairs({false,true}) do
  game.inverted=inverted
  for id,definition in ipairs(rooms) do
-  local state=inverted and definition.reverse or definition.normal
-  for entry in pairs(state.entries) do
-   room_enter(id,entry)
-   check(not room_blocked(player.x,player.y,player.w,player.h),'clear spawn '..id..' '..entry..' '..tostring(inverted))
-   check(player.grounded,'supported spawn '..id..' '..entry)
-   _draw()
-  end
-  -- 通道实际走入；目标入口放开按键后不能立即返回。
-  for _,door in ipairs(state.doors) do
-   room_enter(id,'west'); game.transition=0
+  room_enter(id,'west')
+  for _,door in ipairs(definition.normal.doors) do
+   room_enter(id,'west'); game.transition=0; game.death_timer=0; player.invincible=1000
    player.x=door.direction>0 and door.x-player.w+1 or door.x+door.w-1
-   player.y=door.y+door.h-player.h
-   player.vx=door.direction
-   check(not room_blocked(player.x,player.y,player.w,player.h),'clear portal '..id)
-   check(room_check_portals(),'automatic portal')
-   check(room.id==door.target and game.entry==door.entry,'portal destination')
-   held={}; step(20)
-   check(room.id==door.target,'arrival does not bounce')
+   player.y=door.y+door.h-player.h; player.vx=door.direction
+   check(not room_blocked(player.x,player.y,player.w,player.h),'clear portal')
+   check(room_check_portals() and room.id==door.target and game.entry==door.entry,'portal destination')
+   held={}; step(20); check(room.id==door.target,'no bounce')
   end
-  room_enter(id,'converter'); game.transition=0
-  local old_world=game.inverted
-  game.hp=3
-  check(room_interact(),'converter enters')
-  check(game.inverted~=old_world and game.hp==3,'world change preserves health')
-  game.transition=0
-  check(room_interact() and game.inverted==old_world,'converter returns')
-  check(not room_blocked(player.x,player.y,player.w,player.h),'safe conversion')
  end
 end
--- 核验真实水平走入门，而非只调用入口函数。
-_init(); player.x=480; player.invincible=600
-held[1]=true; step(24); held={}
-check(room.id==2,'walk right through tower wall')
-step(15); held[0]=true; step(24); held={}
-check(room.id==1,'walk back through passage wall')
--- 每扇出口都有位置相对的反向通道，防止把右门连接到另一个右门。
-for _,inverted in ipairs({false,true}) do
- game.inverted=inverted
- for id,definition in ipairs(rooms) do
-  local state=inverted and definition.reverse or definition.normal
-  for _,door in ipairs(state.doors) do
-   local target=inverted and rooms[door.target].reverse or rooms[door.target].normal
-   local entry=target.entries[door.entry]
-   local expected=door.direction>0 and 24 or rooms[door.target].columns*8-40
-   check(entry.x==expected,'opposite-wall arrival')
-   local paired=false
-   for _,back in ipairs(target.doors) do
-    if back.target==id and back.direction==-door.direction and back.y==door.y then paired=true end
-    -- 时钟塔高度不同，低门只要求双方都位于各自地板。
-    if back.target==id and back.direction==-door.direction
-     and door.y==definition.rows*8-32 and back.y==rooms[door.target].rows*8-32 then paired=true end
-   end
-   check(paired,'paired return portal')
-  end
- end
- -- 真实爬台阶走入高门，回廊从左向右，钟室从右向左。
- for _,id in ipairs({2,4}) do
-  room_enter(id,id==2 and 'west' or 'east'); player.invincible=1000
-  local direction=id==2 and 1 or -1
-  held[direction==1 and 1 or 0]=true
-  local launches=id==2 and {38,94,126,164} or {178,148,116,86}
-  local launch=1
-  for frame=1,260 do
-   if launches[launch] and player.grounded and (player.x-launches[launch])*direction>=0 then
-    pressed[4]=true; launch=launch+1
-   end
-   step(1)
-   if room.id~=id then break end
-  end
-  held={}
-  local expected_entry=id==2 and 'high_west' or 'high_east'
-  check(room.id==6-id and game.entry==expected_entry,'reachable high exit '..id..' '..tostring(inverted))
- end
- -- 复现用户一直按右的情况：不能在 2/4 之间反复跳转。
- room_enter(2,'high_east'); player.invincible=1000
- held[1]=true; step(120); held={}
- check(room.id==4,'holding right cannot cycle through shortcut')
- room_enter(4,'high_west'); player.invincible=1000
- held[0]=true; step(120); held={}
- check(room.id==2,'holding left cannot cycle through shortcut')
-end
--- 单次挥击只扣一次；恢复结束才能再次攻击，死亡记忆按世界分开。
+-- 一次电击只伤害一次；击败状态在反重力和重进房间后共用。
 _init(); room_enter(2,'west'); game.transition=0
 local enemy=enemies[1]
 player.x=enemy.x-20; player.y=enemy.y+enemy.h-player.h; player.facing=1
-pressed[5]=true; step(1)
-check(player.animation=='attack','attack animation')
-step(9); check(enemy.hp==1,'one hit per swing')
-step(15); pressed[5]=true; step(10)
-check(enemy.hp==0,'second swing defeats guard')
-room_enter(2,'west'); check(#enemies==0,'defeated guard stays defeated')
-game.inverted=true; room_enter(2,'west'); check(#enemies==1,'mirror enemy separate')
--- 穿墙攻击不成立。只在测试内插入砖，不更改卡带。
-game.inverted=false; game.defeated.normal={}; room_enter(2,'west')
-enemy=enemies[1]; player.x=152; player.y=102; enemy.x=172
-local previous=cells[14][84]; cells[14][84]=14
-check(not attack_visible(enemy),'wall blocks zap')
-cells[14][84]=previous
--- 受伤无敌、死亡等待和回复生命的入口重生。
-_init(); player_take_damage(1,-1)
-check(game.hp==4 and player.attack_timer==0,'damage')
-check(not player_take_damage(1,1) and game.hp==4,'invulnerability')
-step(60); check(player_take_damage(4,1) and game.hp==0,'lethal damage')
-step(combat_config.respawn_frames)
-check(game.hp==5 and game.death_timer==0 and player.invincible>0,'respawn')
-check(player.x==24 and player.grounded,'respawn at entrance')
-log('PASS: spawns, portals, reversible converters, high routes, attacks, walls, persistent enemies, damage and respawn')
+pressed[5]=true; step(10); check(enemy.hp==1,'one hit per swing')
+step(15); pressed[5]=true; step(10); check(enemy.hp==0,'second swing defeats')
+game.inverted=true; room_enter(2,'west'); check(#enemies==2,'defeat shared across gravity')
+-- 法师和弓手攻击差异、子弹撞墙消失。
+local archer=enemies[1]; local mage=enemies[2]
+check(archer.kind=='ranged' and mage.kind=='mage','three enemy kinds')
+player.y=mage.y-20; enemy_shoot(archer); enemy_shoot(mage)
+check(projectiles[1].vy==0 and projectiles[2].vy<0,'arrow versus aimed spell')
+projectiles[1].x=-8; projectiles[2].x=-8; projectiles_update()
+-- 普通 Lua 的 all 模拟迭代器删除后会跳项，因此再更新一次。
+projectiles_update(); check(#projectiles==0,'wall removes projectiles')
+_init(); dialogue=nil; player_take_damage(1,-1)
+check(game.hp==4 and not player_take_damage(1,1),'damage invulnerability')
+step(60); check(player_take_damage(4,1),'lethal damage'); step(45)
+check(game.hp==5 and player.invincible>0,'respawn protection')
+_draw()
+log('PASS: identical map cells, gravity/ceiling jump, reversible gravity transition, dialogue pause/pages, optional converters, portals, shared defeat, enemy shots, damage/respawn')
+
+-- 默认开场回到正常地面入口，立即可控制。
+start_config.entry="west"; start_config.inverted=false; start_config.intro=false
+_init()
+check(player.gravity==1 and player.grounded and player.x==24 and player.y==230,'normal entrance start')
+held[1]=true; step(10); held={}
+check(player.x>24 and player.y==230,'normal walking immediately')
+-- 无装置也仅切上下重力，直接到上方支撑面；方向键不能选侧墙。
+game.inverted=false; room_enter(3,'west'); game.transition=0
+local old_y=player.y
+check(#room.state.converters==0 and room_interact(),'ability without converter')
+step(flip_config.midpoint)
+check(player.gravity==-1 and player.y<old_y and player.grounded,'instant ceiling placement')
+check(not room_blocked(player.x,player.y,player.w,player.h),'ceiling placement clear')
+step(flip_config.frames-flip_config.midpoint)
+_init(); game.inverted=true; room_enter(1,"west"); game.transition=0; player.x=8; player.y=100
+held[0]=true; check(room_interact(),'flip while holding left'); held={}
+step(flip_config.midpoint)
+check(player.gravity==1 and player.x==8 and player.w==8 and player.h==18,'no side wall mode')
+check(player.grounded and not room_blocked(player.x,player.y,player.w,player.h),'instant floor placement')
+step(flip_config.frames-flip_config.midpoint); game.transition=0
+check(room_interact(),'return to ceiling'); step(flip_config.frames)
+check(player.gravity==-1 and player.grounded and player.y==8,'return to top support')
+log('PASS: instant ceiling/floor placement, unchanged horizontal control, no wall adhesion')

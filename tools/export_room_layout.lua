@@ -27,10 +27,10 @@ fget=function(id,flag)
  return math.floor(flags/2^flag)%2==1
 end
 add=table.insert
-for _,name in ipairs({'config','rooms','room','view','player_animation','player','interactions','combat','enemies','drawing','main'}) do
+for _,name in ipairs({'config','rooms','room','view','player_animation','player','interactions','combat','enemies','drawing','dialogue_data','dialogue','flip_effect','decorations','main'}) do
  dofile(root..'/'..name..'.lua')
 end
--- 从运行中的 room_tile 导出有效地形，包含世界旋转和所有覆盖。
+-- 从运行中的 room_tile 导出有效地形，包含共用门洞和所有覆盖。
 local function json(value)
  local kind=type(value)
  if kind=='number' or kind=='boolean' then return tostring(value) end
@@ -58,7 +58,8 @@ for _,inverted in ipairs({false,true}) do
   layouts[#layouts+1]={id=id,inverted=inverted,name=room.state.name,
    width=room.width,height=room.height,map_x=definition.map_x,map_y=definition.map_y,
    tiles=tiles,doors=room.state.doors,entries=room.state.entries,
-   converters=room.state.converters,enemies=room.state.enemies}
+   converters=room.state.converters,enemies=room.state.enemies,
+   lamps=room.state.lamps,talks=room.state.talks}
  end
 end
 local output=assert(io.open(root..'/../docs/current_map_layout.json','w'))

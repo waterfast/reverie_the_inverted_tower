@@ -1,12 +1,16 @@
 -- game 保存跨房间进度；进入房间重建角色物理与敌人，不重置生命和进度。
 function _init()
  player=nil
- game={inverted=false,visited={normal={},reverse={}},
+ game={inverted=start_config.inverted,visited={normal={},reverse={}},
   defeated={normal={},reverse={}},transition=0,entry="west",
   hp=combat_config.max_hp,death_timer=0}
  rooms_configure()
+ dialogue=nil
+ flip_effect=nil
+ game.tick=0
  show_gallery=false
- room_enter(1,"west")
+ room_enter(start_config.room,start_config.entry)
+ if start_config.intro then dialogue_start("intro") end
  menuitem(1,"sprite gallery",function() show_gallery=not show_gallery end)
  menuitem(2,"restart room",player_respawn)
 end
@@ -16,6 +20,9 @@ function _update60()
   if btnp(controls.jump) or btnp(controls.attack) then show_gallery=false end
   return
  end
+ game.tick=game.tick+1
+ if dialogue then dialogue_update() return end
+ if flip_effect then flip_update() return end
  if game.transition>0 then game.transition=game.transition-1 end
  if game.death_timer>0 then
   game.death_timer=game.death_timer-1
@@ -45,10 +52,13 @@ function _draw()
  cls(room.state.color)
  view_begin()
  room_draw()
+ decorations_draw()
  interactions_draw()
  enemies_draw()
  player_draw()
  combat_draw()
  view_end()
  hud_draw()
+ dialogue_draw()
+ flip_draw()
 end

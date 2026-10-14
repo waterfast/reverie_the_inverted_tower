@@ -1,0 +1,24 @@
+{
+  "intro": [
+    {
+      "speaker": "hinome / decree",
+      "text": "前任魔王白菜夺走了王冠。猫雷，请前往魔王城讨伐她。"
+    },
+    {
+      "speaker": "nyaru",
+      "text": "魔王城入口到了。先看看告示，再试着翻转到天花板探索吧。"
+    }
+  ],
+  "notice": [
+    {
+      "speaker": "tower inscription",
+      "text": "按上翻转重力，直接到天花板或地面。左右行走，按跳跃离开支撑面。"
+    }
+  ],
+  "rumor": [
+    {
+      "speaker": "old note",
+      "text": "火羽的告示遍布城堡。可这里留下的证词，为什么恰好相反？"
+    }
+  ]
+}

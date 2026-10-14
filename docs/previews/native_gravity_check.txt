@@ -1,0 +1,1 @@
+PASS: native map equality, fixed position transition, ceiling landing, font and sprite rendering

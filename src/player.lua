@@ -80,3 +80,13 @@ function player_update()
  player_move("y",player.vy)
  player_animation_update()
 end
+
+-- 直接到重力方向最近的支撑面；逐像素扫描避免落进实体或越过平台。
+function player_snap_to_support()
+ player.vx=0
+ player.vy=0
+ player.grounded=false
+ player_move("y",player.gravity*room.height)
+ player.vy=0
+ view_update()
+end

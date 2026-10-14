@@ -9,7 +9,7 @@ function room_draw()
  for y=top,bottom do
   for x=left,right do
    local sprite=room_tile(x,y)
-   if sprite~=0 then spr(sprite,x*size,y*size,1,1,game.inverted,game.inverted) end
+   if sprite~=0 then spr(sprite,x*size,y*size) end
   end
  end
  pal()
@@ -25,10 +25,9 @@ function hud_draw()
   if i<=game.hp then color=8 end
   rectfill(98+i*5,2,100+i*5,5,color)
  end
- local hint="z jump x zap / walk door"
+ local hint="up flip / z jump x zap"
  if room_interaction_target() then
-  hint="up: enter mirror"
-  if game.inverted then hint="up: return to normal" end
+  hint="up: interact / flip"
  end
  if game.death_timer>0 then hint="defeated... respawning" end
  print(hint,2,9,7)

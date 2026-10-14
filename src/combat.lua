@@ -57,7 +57,7 @@ function combat_resolve_attack()
    enemy.hurt_timer=12
    enemy.direction=player.attack_direction
    if enemy.hp==0 then
-    game.defeated[room_world_key()][room.id..":"..enemy.id]=true
+    game.defeated.normal[room.id..":"..enemy.id]=true
    end
   end
  end
@@ -69,7 +69,7 @@ function player_take_damage(amount,direction)
  player.invincible=combat_config.invincible
  player.hurt_timer=combat_config.hurt_frames
  player.knockback=direction*2
- player.vy=-2
+ player.vy=-2*player.gravity
  player.attack_timer=0
  player.animation="hurt"
  player.animation_tick=0
@@ -78,6 +78,10 @@ function player_take_damage(amount,direction)
 end
 
 function player_respawn()
+ ascent_effect=nil
+ game.intro_pending=false
+ dialogue=nil
+ flip_effect=nil
  game.hp=combat_config.max_hp
  game.death_timer=0
  room_enter(room.id,game.entry)

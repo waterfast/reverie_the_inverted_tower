@@ -22,3 +22,7 @@ character_art={size=24,atlas_x=8,atlas_y=0,columns=4}
 -- 每个房间的尺寸和素材区域由 rooms.lua 配置。
 room_config={tile_size=8,solid_flag=0}
 view_config={width=128,height=112,hud_height=16}
+
+-- 从原来的地面入口正常出生，不播放飞升。intro 可按需要打开对白。
+start_config={room=1,entry="west",intro=false,inverted=false}
+flip_config={frames=12,midpoint=6}

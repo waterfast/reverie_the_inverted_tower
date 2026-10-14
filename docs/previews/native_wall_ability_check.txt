@@ -1,0 +1,1 @@
+PASS: native instant inverted start, ceiling walk, both wall poses/walking, drawing CPU, free flip

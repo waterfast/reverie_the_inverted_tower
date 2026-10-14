@@ -19,7 +19,7 @@ def room_image(room):
             sx,sy=sprite%16*8,sprite//16*8
             for y in range(8):
                 for x in range(8):
-                    color=int(GFX[sy+(7-y if inverted else y)][sx+(7-x if inverted else x)],16)
+                    color=int(GFX[sy+y][sx+x],16)
                     if not color: continue
                     if inverted: color={1:2,5:13}.get(color,color)
                     out.putpixel((tx*8+x,ty*8+y),tuple(bytes.fromhex(PALETTE[color])))
@@ -30,16 +30,19 @@ def room_image(room):
         d.line((x,y,x+w-1,y),fill=color);d.line((x,y+h-1,x+w-1,y+h-1),fill=color)
         d.line([(x+4-direction*2,y+10),(x+4+direction*2,y+12),(x+4-direction*2,y+14)],fill=color)
     for converter in room['converters']:
-        x,y=converter['x'],converter['y']
-        d.rectangle((x,y+24,x+23,y+31),fill='#5f574f')
-        d.ellipse((x+3,y+2,x+21,y+20),fill='black',outline=color)
-        d.line([(x+12,y+4),(x+12,y+11),(x+17,y+14)],fill='#29adff')
+        x,y,h=converter['x'],converter['y'],converter['h']
+        for cy in (y+11,y+h-21):
+            d.ellipse((x+3,cy-9,x+21,cy+9),fill='black',outline=color)
+            d.line([(x+12,cy-7),(x+12,cy),(x+17,cy+3)],fill='#29adff')
+        for cy in range(y+28,y+h-28,6): d.point((x+12,cy),fill=color)
     for enemy in room['enemies']:
-        x,y=enemy['x'],enemy['y'];color='#'+PALETTE[enemy['color']]
-        d.rectangle((x+1,y+3,x+8,y+9),fill=color)
-        d.rectangle((x+2,y,x+7,y+4),fill='#5f574f')
-        d.line((x+3,y+2,x+6,y+2),fill='#ffec27')
-        d.line((x+1,y+11,x+3,y+11),fill='#c2c3c7');d.line((x+6,y+11,x+8,y+11),fill='#c2c3c7')
+        # 总览标出生怪位置，运行时倒重力会自然向上落，不假造另一张地图。
+        sid={'melee':192,'ranged':196,'mage':200}[enemy['kind']]
+        sx,sy=sid%16*8,sid//16*8
+        for py in range(16):
+            for px in range(16):
+                c=int(GFX[sy+py][sx+px],16)
+                if c: out.putpixel((int(enemy['x'])-3+px,int(enemy['y'])-4+py),tuple(bytes.fromhex(PALETTE[c])))
     # 白点标出每个命名入口，不混入运行中的角色/敌人位置。
     for entry in room['entries'].values():
         x,y=entry['x']+4,entry['y']+9
@@ -48,7 +51,7 @@ def room_image(room):
 for inverted in (False,True):
     rooms=[r for r in LAYOUTS if r['inverted']==inverted]
     overview=Image.new('RGB',(1504,520),'#101826');d=ImageDraw.Draw(overview)
-    d.text((28,16),('镜世界' if inverted else '表城')+' · 当前完整房间布局（相同比例，地板对齐）',font=title,fill='#fff1e8')
+    d.text((28,16),('镜世界' if inverted else '表城')+' · 共用房间布局（仅重力方向不同）',font=title,fill='#fff1e8')
     origins=[(28,140),(596,268),(908,268),(1220,268)]
     for room,(x,y) in zip(rooms,origins):
         im=room_image(room);overview.paste(im,(x,y));d.rectangle((x-1,y-1,x+room['width'],y+room['height']),outline='#5f6d85')
@@ -67,6 +70,6 @@ for inverted in (False,True):
     d.text((928,144),'A：2 右上 <-> 4 左上',font=font,fill='#29adff')
     for x,y in (points[0],points[-1]):d.ellipse((x-3,y-3,x+3,y+3),fill='#29adff')
     d.text((28,427),'低层：1 <-> 2 <-> 3 <-> 4     高层捷径 A：2 右上 <-> 4 左上',font=font,fill='#fff1e8')
-    d.text((28,464),'钟盘：双向转换器（↑）    红/紫守卫：敌人    绿框：安全入口    门洞：走入自动换房',font=small,fill='#b3c0d3')
+    d.text((28,464),'钟盘：双向转换器（↑）    红/黄/紫：近战/弓手/法师    绿框：安全入口    门洞：走入自动换房',font=small,fill='#b3c0d3')
     overview.save(ROOT/f"docs/previews/current_map_{'reverse' if inverted else 'normal'}.png")
 print('Rendered both worlds from effective map data')
